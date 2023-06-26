@@ -110,8 +110,8 @@ class HlsQualitySelectorPlugin {
 
       return hasMeta && {
         label,
-        value: pixels,
-      }
+        value: pixels
+      };
     }
 
     const { width, height } = level;
@@ -119,8 +119,8 @@ class HlsQualitySelectorPlugin {
 
     return {
       label: pixels + 'p',
-      value: pixels,
-    }
+      value: pixels
+    };
   }
 
   getLevelItems(levels) {
@@ -129,10 +129,10 @@ class HlsQualitySelectorPlugin {
     for (let i = 0; i < levels.length; ++i) {
       const { value, label } = this.getQualityMeta(levels[i]);
 
-      if(!items[value]) {
+      if (!items[value]) {
         items[value] = this.getQualityMenuItem.call(this, {
           label,
-          value,
+          value
         });
       }
     }
