@@ -46,13 +46,31 @@ class HlsQualitySelectorPlugin {
   }
 
   /**
+   * Returns master playlist of Tech Streaming Tool
+   * @returns {*[]}
+   */
+  getMasterPlaylists() {
+    const { playlists } = this.getTechStreaming();
+
+    if (playlists && typeof playlists.master === 'object') {
+      const { master } = playlists;
+
+      return master.playlists;
+    }
+
+    return playlists || [];
+  }
+
+  /**
    * Maps master playlist attributes bandwidth to name
    */
   onLoadedMetadata() {
-    const { master } = this.getTechStreaming() || {};
-    const playlists = typeof master === 'object' ? master.playlists : [];
+    const playlists = this.getMasterPlaylists();
 
-    console.log(this.getTechStreaming());
+    console.log({
+      playlists,
+      tech: this.getTechStreaming(),
+    });
 
     this.bandwidthToNameMap = playlists.reduce((acc, playlist) => {
       if (typeof playlist === 'object' && typeof playlist.attributes === 'object') {
