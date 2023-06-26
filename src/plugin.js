@@ -8,7 +8,6 @@ const defaults = {};
 
 // Cross-compatibility for Video.js 5 and 6.
 const registerPlugin = videojs.registerPlugin || videojs.plugin;
-// const dom = videojs.dom || videojs;
 
 /**
  * VideoJS HLS Quality Selector Plugin class.
@@ -24,23 +23,44 @@ class HlsQualitySelectorPlugin {
   constructor(player, options) {
     this.player = player;
     this.config = options;
+    this.bandwidthToNameMap = {};
 
     // If there is quality levels plugin and the HLS tech exists
     // then continue.
-    if (this.player.qualityLevels && this.getHls()) {
+    if (this.player.qualityLevels && this.getTechStreaming()) {
       // Create the quality button.
       this.createQualityButton();
       this.bindPlayerEvents();
+      this.mapBandwidthToName();
     }
   }
 
   /**
-   * Returns HLS Plugin
+   * Returns HLS or VHS Plugin
    *
-   * @return {*} - videojs-hls-contrib plugin.
+   * @return {*} - <videojs-hls-contrib | videojs/http-streaming> plugin.
    */
-  getHls() {
-    return this.player.tech({ IWillNotUseThisInPlugins: true }).hls;
+  getTechStreaming() {
+    const tech = this.player.tech({IWillNotUseThisInPlugins: true});
+
+    return tech.vhs || tech.hls;
+  }
+
+  /**
+   * Maps master playlist attributes bandwidth to name
+   */
+  mapBandwidthToName() {
+    const { master } = this.getTechStreaming() || {};
+    const playlists = typeof master === 'object' ? master.playlists : [];
+
+    this.bandwidthToNameMap = playlists.reduce((acc, playlist) => {
+      if (typeof playlist === 'object' && typeof playlist.attributes === 'object') {
+        const { NAME, BANDWIDTH } = playlist.attributes;
+        return Object.assign(acc, { [BANDWIDTH]: NAME });
+      }
+
+      return acc;
+    }, {});
   }
 
   /**
@@ -99,22 +119,29 @@ class HlsQualitySelectorPlugin {
     return new ConcreteMenuItem(player, item, this._qualityButton, this);
   }
 
-  getQualityMeta(level) {
-    const { qualityPattern } = this.config;
+  /**
+   *
+   * @param item - Individual quality menu item.
+   * @returns {{label: *, value: number}|null} - Quality label and value (metadata).
+   */
+  getQualityMeta(item) {
+    const {qualityPattern} = this.config;
 
-    if (qualityPattern && typeof level.id === 'string') {
-      const matches = level.id.match(qualityPattern);
+    console.log(this.bandwidthToNameMap);
+
+    if (qualityPattern && typeof item.id === 'string') {
+      const matches = item.id.match(qualityPattern);
       const label = matches && matches[1];
       const pixels = Number.parseInt(label, 10);
       const hasMeta = label && !Number.isNaN(pixels);
 
-      return hasMeta && {
+      return hasMeta ? {
         label,
         value: pixels
-      };
+      } : null;
     }
 
-    const { width, height } = level;
+    const { width, height } = item;
     const pixels = width > height ? height : width;
 
     return {
@@ -127,7 +154,7 @@ class HlsQualitySelectorPlugin {
     const items = {};
 
     for (let i = 0; i < levels.length; ++i) {
-      const { value, label } = this.getQualityMeta(levels[i]);
+      const {value, label} = this.getQualityMeta(levels[i]);
 
       if (!items[value]) {
         items[value] = this.getQualityMenuItem.call(this, {
@@ -149,8 +176,6 @@ class HlsQualitySelectorPlugin {
     const levels = qualityList.levels_ || [];
     const levelItems = this.getLevelItems(levels);
 
-    console.log(player);
-
     levelItems.sort((current, next) => {
       if ((typeof current !== 'object') || (typeof next !== 'object')) {
         return -1;
@@ -171,7 +196,7 @@ class HlsQualitySelectorPlugin {
     }));
 
     if (this._qualityButton) {
-      this._qualityButton.createItems = function() {
+      this._qualityButton.createItems = function () {
         return levelItems;
       };
       this._qualityButton.update();
@@ -245,7 +270,7 @@ const onPlayerReady = (player, options) => {
  * @param    {Object} [options={}]
  *           An object of options left to the plugin author to define.
  */
-const hlsQualitySelector = function(options) {
+const hlsQualitySelector = function (options) {
   this.ready(() => {
     onPlayerReady(this, videojs.mergeOptions(defaults, options));
   });
