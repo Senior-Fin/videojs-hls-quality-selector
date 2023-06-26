@@ -144,7 +144,7 @@ class HlsQualitySelectorPlugin {
    */
   getQualityMeta(item) {
     const {qualityPattern} = this.config;
-    const bandwidth = this.mapBandwidthToName;
+    const bandwidth = this.mapBandwidthToName();
 
     console.log({ bandwidth });
 
