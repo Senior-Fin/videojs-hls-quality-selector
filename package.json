@@ -53,7 +53,8 @@
       "dist",
       "docs",
       "test/dist",
-      "test/karma.conf.js"
+      "test/karma.conf.js",
+      "src/plugin.js"
     ]
   },
   "files": [
