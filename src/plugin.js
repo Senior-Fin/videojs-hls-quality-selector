@@ -23,7 +23,7 @@ class HlsQualitySelectorPlugin {
   constructor(player, options) {
     this.player = player;
     this.config = options;
-    this.bandwidthToNameMap = {};
+    this.bandwidthToNameMap = null;
 
     // If there is quality levels plugin and the HLS tech exists
     // then continue.
@@ -64,13 +64,12 @@ class HlsQualitySelectorPlugin {
   /**
    * Maps master playlist attributes bandwidth to name
    */
-  onLoadedMetadata() {
-    const playlists = this.getMasterPlaylists();
+  mapBandwidthToName() {
+    if (this.bandwidthToNameMap) {
+      return this.bandwidthToNameMap;
+    }
 
-    console.log({
-      playlists,
-      tech: this.getTechStreaming(),
-    });
+    const playlists = this.getMasterPlaylists();
 
     this.bandwidthToNameMap = playlists.reduce((acc, playlist) => {
       if (typeof playlist === 'object' && typeof playlist.attributes === 'object') {
@@ -86,13 +85,6 @@ class HlsQualitySelectorPlugin {
    * Binds listener for quality level changes.
    */
   bindPlayerEvents() {
-    this.player.on('loadedmetadata', this.onLoadedMetadata.bind(this));
-    this.player.on('ready', () => {
-      console.log('ON READY', this.getTechStreaming());
-    });
-    this.player.qualityLevels().on('change', () => {
-      console.log('ON QUALITY CHANGE', this.getTechStreaming());
-    });
     this.player.qualityLevels().on('addqualitylevel', this.onAddQualityLevel.bind(this));
   }
 
@@ -152,8 +144,9 @@ class HlsQualitySelectorPlugin {
    */
   getQualityMeta(item) {
     const {qualityPattern} = this.config;
+    const bandwidth = this.mapBandwidthToName;
 
-    console.log(this.bandwidthToNameMap);
+    console.log({ bandwidth });
 
     if (qualityPattern && typeof item.id === 'string') {
       const matches = item.id.match(qualityPattern);
