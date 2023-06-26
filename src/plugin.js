@@ -87,6 +87,19 @@ class HlsQualitySelectorPlugin {
    */
   bindPlayerEvents() {
     this.player.on('loadedmetadata', this.onLoadedMetadata.bind(this));
+
+    this.player.on('ready', () => {
+      console.log('ON READY', {
+        ...this.getTechStreaming()
+      });
+    });
+
+    this.player.qualityLevels().on('change', () => {
+      console.log('ON QUALITY CHANGE', {
+        ...this.getTechStreaming()
+      });
+    });
+
     this.player.qualityLevels().on('addqualitylevel', this.onAddQualityLevel.bind(this));
   }
 
@@ -195,6 +208,10 @@ class HlsQualitySelectorPlugin {
     const qualityList = player.qualityLevels();
     const levels = qualityList.levels_ || [];
     const levelItems = this.getLevelItems(levels);
+
+    console.log('ON ADD QUALITY LEVEL', {
+      ...this.getTechStreaming()
+    });
 
     levelItems.sort((current, next) => {
       if ((typeof current !== 'object') || (typeof next !== 'object')) {
