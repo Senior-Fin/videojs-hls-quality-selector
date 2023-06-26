@@ -99,35 +99,57 @@ class HlsQualitySelectorPlugin {
     return new ConcreteMenuItem(player, item, this._qualityButton, this);
   }
 
+  getQualityMeta(level) {
+    const { qualityPattern } = this.config;
+
+    if (qualityPattern && typeof level.id === 'string') {
+      const matches = level.id.match(qualityPattern);
+      const label = matches && matches[1];
+      const pixels = Number.parseInt(label, 10);
+      const hasMeta = label && !Number.isNaN(pixels);
+
+      return hasMeta && {
+        label,
+        value: pixels,
+      }
+    }
+
+    const { width, height } = level;
+    const pixels = width > height ? height : width;
+
+    return {
+      label: pixels + 'p',
+      value: pixels,
+    }
+  }
+
+  getLevelItems(levels) {
+    const items = {};
+
+    for (let i = 0; i < levels.length; ++i) {
+      const { value, label } = this.getQualityMeta(levels[i]);
+
+      if(!items[value]) {
+        items[value] = this.getQualityMenuItem.call(this, {
+          label,
+          value,
+        });
+      }
+    }
+
+    return Object.keys(items).map(key => items[key]);
+  }
+
   /**
    * Executed when a quality level is added from HLS playlist.
    */
   onAddQualityLevel() {
-
     const player = this.player;
     const qualityList = player.qualityLevels();
     const levels = qualityList.levels_ || [];
-    const levelItems = [];
+    const levelItems = this.getLevelItems(levels);
 
-    for (let i = 0; i < levels.length; ++i) {
-      const {width, height} = levels[i];
-      const pixels = width > height ? height : width;
-
-      if (!pixels) {
-        continue;
-      }
-
-      if (!levelItems.filter(_existingItem => {
-        return _existingItem.item && _existingItem.item.value === pixels;
-      }).length) {
-        const levelItem = this.getQualityMenuItem.call(this, {
-          label: pixels + 'p',
-          value: pixels
-        });
-
-        levelItems.push(levelItem);
-      }
-    }
+    console.log(player);
 
     levelItems.sort((current, next) => {
       if ((typeof current !== 'object') || (typeof next !== 'object')) {
