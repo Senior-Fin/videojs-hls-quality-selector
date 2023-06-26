@@ -31,7 +31,6 @@ class HlsQualitySelectorPlugin {
       // Create the quality button.
       this.createQualityButton();
       this.bindPlayerEvents();
-      this.mapBandwidthToName();
     }
   }
 
@@ -49,9 +48,11 @@ class HlsQualitySelectorPlugin {
   /**
    * Maps master playlist attributes bandwidth to name
    */
-  mapBandwidthToName() {
+  onLoadedMetadata() {
     const { master } = this.getTechStreaming() || {};
     const playlists = typeof master === 'object' ? master.playlists : [];
+
+    console.log(this.getTechStreaming());
 
     this.bandwidthToNameMap = playlists.reduce((acc, playlist) => {
       if (typeof playlist === 'object' && typeof playlist.attributes === 'object') {
@@ -67,6 +68,7 @@ class HlsQualitySelectorPlugin {
    * Binds listener for quality level changes.
    */
   bindPlayerEvents() {
+    this.player.on('loadedmetadata', this.onLoadedMetadata.bind(this));
     this.player.qualityLevels().on('addqualitylevel', this.onAddQualityLevel.bind(this));
   }
 
