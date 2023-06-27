@@ -234,9 +234,11 @@ class HlsQualitySelectorPlugin {
 
       if (typeof bitrate === 'number' && (!width || !height)) {
         enabled = quality === bitrate;
+        console.log({ quality, bitrate, enabled });
       } else {
         const pixels = width > height ? height : width;
         enabled = pixels === quality;
+        console.log({ quality, pixels, enabled });
       }
 
       levels[index].enabled = enabled;
