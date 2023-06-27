@@ -52,8 +52,6 @@ class HlsQualitySelectorPlugin {
   getMasterPlaylists() {
     const { playlists } = this.getTechStreaming();
 
-    console.log('Master Playlists: ', { playlists });
-
     if (playlists && typeof playlists.master === 'object') {
       const { master } = playlists;
 
@@ -66,23 +64,22 @@ class HlsQualitySelectorPlugin {
   /**
    * Maps master playlist attributes bandwidth to name
    */
-  mapBandwidthToName() {
-    if (this.bandwidthToNameMap) {
-      return this.bandwidthToNameMap;
+  getBandwidthToNameMap() {
+    if (!this.bandwidthToNameMap) {
+      const playlists = this.getMasterPlaylists();
+
+      this.bandwidthToNameMap = playlists.reduce((acc, playlist) => {
+        if (typeof playlist === 'object' && typeof playlist.attributes === 'object') {
+          const { NAME, BANDWIDTH } = playlist.attributes;
+          return Object.assign(acc, { [BANDWIDTH]: NAME });
+        }
+
+        return acc;
+      }, {});
     }
 
-    const playlists = this.getMasterPlaylists();
 
-    console.log('mapBandwidthToName: ', { playlists });
-
-    this.bandwidthToNameMap = playlists.reduce((acc, playlist) => {
-      if (typeof playlist === 'object' && typeof playlist.attributes === 'object') {
-        const { NAME, BANDWIDTH } = playlist.attributes;
-        return Object.assign(acc, { [BANDWIDTH]: NAME });
-      }
-
-      return acc;
-    }, {});
+    return this.bandwidthToNameMap;
   }
 
   /**
@@ -147,12 +144,8 @@ class HlsQualitySelectorPlugin {
    * @returns {{label: *, value: number}|null} - Quality label and value (metadata).
    */
   getQualityMeta(item) {
-    console.log('Meta: ', { item });
-
     if (typeof item === 'object' && (!item.width || !item.height)) {
-      const bandwidth = this.mapBandwidthToName();
-
-      console.log('Meta: ', { bandwidth });
+      const bandwidth = this.getBandwidthToNameMap();
 
       return {
         label: bandwidth[item.bandwidth],
@@ -162,8 +155,6 @@ class HlsQualitySelectorPlugin {
 
     const { height, width } = item;
     const pixels = width > height ? height : width;
-
-    console.log('Meta: ', { height, width, pixels });
 
     return {
       label: pixels + 'p',
