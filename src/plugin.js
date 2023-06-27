@@ -259,7 +259,7 @@ class HlsQualitySelectorPlugin {
       this.setButtonInnerText(label);
     }
 
-    this.enableQuality();
+    this.enableQuality(quality);
     this._qualityButton.unpressButton();
   }
 
