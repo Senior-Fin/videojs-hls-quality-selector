@@ -23,7 +23,7 @@ class HlsQualitySelectorPlugin {
   constructor(player, options) {
     this.player = player;
     this.config = options;
-    this.bandwidthToNameMap = null;
+    this.bitrates = null;
 
     // If there is quality levels plugin and the HLS tech exists
     // then continue.
@@ -64,11 +64,11 @@ class HlsQualitySelectorPlugin {
   /**
    * Maps master playlist attributes bandwidth to name
    */
-  getBandwidthToNameMap() {
-    if (!this.bandwidthToNameMap) {
+  getBitratesToNameMap() {
+    if (!this.bitrates) {
       const playlists = this.getMasterPlaylists();
 
-      this.bandwidthToNameMap = playlists.reduce((acc, playlist) => {
+      this.bitrates = playlists.reduce((acc, playlist) => {
         if (typeof playlist === 'object' && typeof playlist.attributes === 'object') {
           const { NAME, BANDWIDTH } = playlist.attributes;
           return Object.assign(acc, { [BANDWIDTH]: NAME });
@@ -79,7 +79,7 @@ class HlsQualitySelectorPlugin {
     }
 
 
-    return this.bandwidthToNameMap;
+    return this.bitrates;
   }
 
   /**
@@ -93,9 +93,7 @@ class HlsQualitySelectorPlugin {
    * Adds the quality menu button to the player control bar.
    */
   createQualityButton() {
-
     const player = this.player;
-
     this._qualityButton = new ConcreteButton(player);
 
     const placementIndex = player.controlBar.children().length - 2;
@@ -145,13 +143,11 @@ class HlsQualitySelectorPlugin {
    */
   getQualityMeta(item) {
     if (typeof item === 'object' && (!item.width || !item.height)) {
-      const bandwidths = this.getBandwidthToNameMap();
+      const bitrates = this.getBitratesToNameMap();
       const key = item.bitrate ? item.bitrate.toString() : undefined;
 
-      console.log({ item, bandwidths });
-
       return {
-        label: bandwidths[key],
+        label: bitrates[key],
         value: item.bitrate,
       }
     }
@@ -223,22 +219,18 @@ class HlsQualitySelectorPlugin {
    *
    * @param quality - A number r
    */
-  enableQuality(quality) {
+  markLevelAsEnabledByQuality(quality) {
     const levels = this.player.qualityLevels();
 
     for (let index = 0; index < levels.length; index += 1) {
       let enabled;
       const { bitrate, width, height } = levels[index];
 
-      console.log('ENABLE QUALITY: ', { bitrate, width, height, level: levels[index] });
-
       if (typeof bitrate === 'number' && (!width || !height)) {
         enabled = quality === bitrate;
-        console.log({ quality, bitrate, enabled });
       } else {
         const pixels = width > height ? height : width;
         enabled = pixels === quality;
-        console.log({ quality, pixels, enabled });
       }
 
       levels[index].enabled = enabled;
@@ -255,11 +247,11 @@ class HlsQualitySelectorPlugin {
     this._currentQuality = quality;
 
     if (this.config.displayCurrentQuality) {
-      const label = this.bandwidthToNameMap[quality] || `${quality}p`;
+      const label = this.bitrates[quality] || `${quality}p`;
       this.setButtonInnerText(label);
     }
 
-    this.enableQuality(quality);
+    this.markLevelAsEnabledByQuality(quality);
     this._qualityButton.unpressButton();
   }
 
