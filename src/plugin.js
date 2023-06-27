@@ -189,6 +189,8 @@ class HlsQualitySelectorPlugin {
     const levels = qualityList.levels_ || [];
     const levelItems = this.getLevelItems(levels);
 
+    console.log('onAddQualityLevel: ', { levels, qualityList });
+
     levelItems.sort((current, next) => {
       if ((typeof current !== 'object') || (typeof next !== 'object')) {
         return -1;
