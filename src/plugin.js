@@ -161,7 +161,7 @@ class HlsQualitySelectorPlugin {
 
     return {
       label: pixels + 'p',
-      value: item.bandwidth,
+      value: item.bitrate,
     };
   }
 
@@ -190,8 +190,6 @@ class HlsQualitySelectorPlugin {
     const qualityList = player.qualityLevels();
     const levels = qualityList.levels_ || [];
     const levelItems = this.getLevelItems(levels);
-
-    console.log('onAddQualityLevel: ', { levels, qualityList });
 
     levelItems.sort((current, next) => {
       if ((typeof current !== 'object') || (typeof next !== 'object')) {
@@ -222,28 +220,43 @@ class HlsQualitySelectorPlugin {
   }
 
   /**
+   *
+   * @param quality - A number r
+   */
+  enableQuality(quality) {
+    const levels = this.player.qualityLevels();
+
+    levels.forEach(({ width, height, bitrate }, index) => {
+      let enabled;
+
+      console.log(width, height, bitrate);
+
+      if (typeof bitrate === 'number' && (!width || !height)) {
+        enabled = quality === bitrate;
+      } else {
+        const pixels = width > height ? height : width;
+        enabled = pixels === quality;
+      }
+
+      levels[index].enabled = enabled;
+    });
+  }
+
+  /**
    * Sets quality (based on media short side)
    *
    * @param {number} quality - A number representing HLS playlist.
    */
   setQuality(quality) {
-    const qualityList = this.player.qualityLevels();
-
-    console.log({ quality, qualityList });
-
     // Set quality on plugin
     this._currentQuality = quality;
 
     if (this.config.displayCurrentQuality) {
-      this.setButtonInnerText(quality === 'auto' ? quality : `${quality}p`);
+      const label = this.bandwidthToNameMap[quality] || `${quality}p`;
+      this.setButtonInnerText(label);
     }
 
-    for (let i = 0; i < qualityList.length; ++i) {
-      const {width, height} = qualityList[i];
-      const pixels = width > height ? height : width;
-
-      qualityList[i].enabled = (pixels === quality || quality === 'auto');
-    }
+    this.enableQuality();
     this._qualityButton.unpressButton();
   }
 
