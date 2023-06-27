@@ -143,29 +143,22 @@ class HlsQualitySelectorPlugin {
    * @returns {{label: *, value: number}|null} - Quality label and value (metadata).
    */
   getQualityMeta(item) {
-    const {qualityPattern} = this.config;
-    const bandwidth = this.mapBandwidthToName();
+    const { width, height, bandwidth } = item;
 
-    console.log({ bandwidth });
+    if (!width || !height) {
+      const bandwidth = this.mapBandwidthToName();
 
-    if (qualityPattern && typeof item.id === 'string') {
-      const matches = item.id.match(qualityPattern);
-      const label = matches && matches[1];
-      const pixels = Number.parseInt(label, 10);
-      const hasMeta = label && !Number.isNaN(pixels);
-
-      return hasMeta ? {
-        label,
-        value: pixels
-      } : null;
+      return {
+        label: bandwidth[item.bandwidth],
+        value: item.bandwidth,
+      }
     }
 
-    const { width, height } = item;
     const pixels = width > height ? height : width;
 
     return {
       label: pixels + 'p',
-      value: pixels
+      value: item.bandwidth,
     };
   }
 
@@ -194,8 +187,6 @@ class HlsQualitySelectorPlugin {
     const qualityList = player.qualityLevels();
     const levels = qualityList.levels_ || [];
     const levelItems = this.getLevelItems(levels);
-
-    console.log('ON ADD QUALITY LEVEL', this.getTechStreaming());
 
     levelItems.sort((current, next) => {
       if ((typeof current !== 'object') || (typeof next !== 'object')) {
@@ -232,6 +223,8 @@ class HlsQualitySelectorPlugin {
    */
   setQuality(quality) {
     const qualityList = this.player.qualityLevels();
+
+    console.log({ quality, qualityList });
 
     // Set quality on plugin
     this._currentQuality = quality;
