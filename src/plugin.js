@@ -145,12 +145,14 @@ class HlsQualitySelectorPlugin {
    */
   getQualityMeta(item) {
     if (typeof item === 'object' && (!item.width || !item.height)) {
-      const bandwidth = this.getBandwidthToNameMap();
+      const bandwidths = this.getBandwidthToNameMap();
       const key = item.bitrate ? item.bitrate.toString() : undefined;
 
+      console.log({ item, bandwidths });
+
       return {
-        label: bandwidth[key],
-        value: item.bandwidth,
+        label: bandwidths[key],
+        value: item.bitrate,
       }
     }
 
