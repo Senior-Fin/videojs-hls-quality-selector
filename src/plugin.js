@@ -226,10 +226,11 @@ class HlsQualitySelectorPlugin {
   enableQuality(quality) {
     const levels = this.player.qualityLevels();
 
-    levels.forEach(({ width, height, bitrate }, index) => {
+    for (let index = 0; index <= levels.length; index += 1) {
+      const { bitrate, width, height } = levels[index];
       let enabled;
 
-      console.log(width, height, bitrate);
+      console.log('ENABLE QUALITY: ', { bitrate, width, height, level: levels[index] });
 
       if (typeof bitrate === 'number' && (!width || !height)) {
         enabled = quality === bitrate;
@@ -239,7 +240,7 @@ class HlsQualitySelectorPlugin {
       }
 
       levels[index].enabled = enabled;
-    });
+    }
   }
 
   /**
