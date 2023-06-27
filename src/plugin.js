@@ -146,9 +146,7 @@ class HlsQualitySelectorPlugin {
   getQualityMeta(item) {
     if (typeof item === 'object' && (!item.width || !item.height)) {
       const bandwidth = this.getBandwidthToNameMap();
-      const key = item.bandwidth ? item.bandwidth.toString() : undefined;
-
-      console.log({ key, bandwidth });
+      const key = item.bitrate ? item.bitrate.toString() : undefined;
 
       return {
         label: bandwidth[key],
