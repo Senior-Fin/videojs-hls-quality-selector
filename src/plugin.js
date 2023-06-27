@@ -52,10 +52,12 @@ class HlsQualitySelectorPlugin {
   getMasterPlaylists() {
     const { playlists } = this.getTechStreaming();
 
+    console.log('Master Playlists: ', { playlists });
+
     if (playlists && typeof playlists.master === 'object') {
       const { master } = playlists;
 
-      return master.playlists;
+      return master.playlists || [];
     }
 
     return playlists || [];
@@ -70,6 +72,8 @@ class HlsQualitySelectorPlugin {
     }
 
     const playlists = this.getMasterPlaylists();
+
+    console.log('mapBandwidthToName: ', { playlists });
 
     this.bandwidthToNameMap = playlists.reduce((acc, playlist) => {
       if (typeof playlist === 'object' && typeof playlist.attributes === 'object') {
