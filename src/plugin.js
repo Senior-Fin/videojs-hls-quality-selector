@@ -147,10 +147,12 @@ class HlsQualitySelectorPlugin {
    * @returns {{label: *, value: number}|null} - Quality label and value (metadata).
    */
   getQualityMeta(item) {
-    const { width, height, bandwidth } = item;
+    console.log('Meta: ', { item });
 
-    if (!width || !height) {
+    if (typeof item === 'object' && (!item.width || !item.height)) {
       const bandwidth = this.mapBandwidthToName();
+
+      console.log('Meta: ', { bandwidth });
 
       return {
         label: bandwidth[item.bandwidth],
@@ -158,7 +160,10 @@ class HlsQualitySelectorPlugin {
       }
     }
 
+    const { height, width } = item;
     const pixels = width > height ? height : width;
+
+    console.log('Meta: ', { height, width, pixels });
 
     return {
       label: pixels + 'p',
