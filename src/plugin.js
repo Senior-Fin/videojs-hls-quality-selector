@@ -35,6 +35,13 @@ class HlsQualitySelectorPlugin {
   }
 
   /**
+   * Binds listener for quality level changes.
+   */
+  bindPlayerEvents() {
+    this.player.qualityLevels().on('addqualitylevel', this.onAddQualityLevel.bind(this));
+  }
+
+  /**
    * Returns HLS or VHS Plugin
    *
    * @return {*} - <videojs-hls-contrib | videojs/http-streaming> plugin.
@@ -50,10 +57,10 @@ class HlsQualitySelectorPlugin {
    * @returns {*[]}
    */
   getMasterPlaylists() {
-    const { playlists } = this.getTechStreaming();
+    const {playlists} = this.getTechStreaming();
 
     if (playlists && typeof playlists.master === 'object') {
-      const { master } = playlists;
+      const {master} = playlists;
 
       return master.playlists || [];
     }
@@ -64,14 +71,14 @@ class HlsQualitySelectorPlugin {
   /**
    * Maps master playlist attributes bandwidth to name
    */
-  getBandwidthToNameMap() {
+  getBitrateToNameMap() {
     if (!this.bandwidthToNameMap) {
       const playlists = this.getMasterPlaylists();
 
       this.bandwidthToNameMap = playlists.reduce((acc, playlist) => {
         if (typeof playlist === 'object' && typeof playlist.attributes === 'object') {
-          const { NAME, BANDWIDTH } = playlist.attributes;
-          return Object.assign(acc, { [BANDWIDTH]: NAME });
+          const {NAME, BANDWIDTH} = playlist.attributes;
+          return Object.assign(acc, {[BANDWIDTH]: NAME});
         }
 
         return acc;
@@ -83,10 +90,58 @@ class HlsQualitySelectorPlugin {
   }
 
   /**
-   * Binds listener for quality level changes.
+   * Builds individual quality menu items.
+   *
+   * @param {Object} item - Individual quality menu item.
+   * @return {ConcreteMenuItem} - Menu item
    */
-  bindPlayerEvents() {
-    this.player.qualityLevels().on('addqualitylevel', this.onAddQualityLevel.bind(this));
+  getQualityMenuItem(item) {
+    const player = this.player;
+
+    return new ConcreteMenuItem(player, item, this._qualityButton, this);
+  }
+
+  /**
+   *
+   * @param item - Individual quality menu item.
+   * @returns {{label: *, value: number}|null} - Quality label and value (metadata).
+   */
+  getQualityMeta(item) {
+    if (typeof item === 'object' && (!item.width || !item.height)) {
+      const bitrates = this.getBitrateToNameMap();
+      const key = item.bitrate ? item.bitrate.toString() : undefined;
+
+      return {
+        label: bitrates[key],
+        value: item.bitrate,
+      }
+    }
+
+    const {height, width} = item;
+    const pixels = width > height ? height : width;
+
+    return {
+      label: pixels + 'p',
+      value: item.bitrate,
+    };
+  }
+
+  getLevelItems() {
+    const qualities = this.player.qualityLevels();
+    const levels = qualities.levels_ || [];
+
+    for (let i = 0; i < levels.length; ++i) {
+      const {value, label} = this.getQualityMeta(levels[i]);
+
+      if (!levels[value]) {
+        levels[value] = this.getQualityMenuItem.call(this, {
+          label,
+          value
+        });
+      }
+    }
+
+    return Object.values(levels);
   }
 
   /**
@@ -127,69 +182,10 @@ class HlsQualitySelectorPlugin {
   }
 
   /**
-   * Builds individual quality menu items.
-   *
-   * @param {Object} item - Individual quality menu item.
-   * @return {ConcreteMenuItem} - Menu item
-   */
-  getQualityMenuItem(item) {
-    const player = this.player;
-
-    return new ConcreteMenuItem(player, item, this._qualityButton, this);
-  }
-
-  /**
-   *
-   * @param item - Individual quality menu item.
-   * @returns {{label: *, value: number}|null} - Quality label and value (metadata).
-   */
-  getQualityMeta(item) {
-    if (typeof item === 'object' && (!item.width || !item.height)) {
-      const bandwidths = this.getBandwidthToNameMap();
-      const key = item.bitrate ? item.bitrate.toString() : undefined;
-
-      console.log({ item, bandwidths });
-
-      return {
-        label: bandwidths[key],
-        value: item.bitrate,
-      }
-    }
-
-    const { height, width } = item;
-    const pixels = width > height ? height : width;
-
-    return {
-      label: pixels + 'p',
-      value: item.bitrate,
-    };
-  }
-
-  getLevelItems(levels) {
-    const items = {};
-
-    for (let i = 0; i < levels.length; ++i) {
-      const {value, label} = this.getQualityMeta(levels[i]);
-
-      if (!items[value]) {
-        items[value] = this.getQualityMenuItem.call(this, {
-          label,
-          value
-        });
-      }
-    }
-
-    return Object.keys(items).map(key => items[key]);
-  }
-
-  /**
    * Executed when a quality level is added from HLS playlist.
    */
   onAddQualityLevel() {
-    const player = this.player;
-    const qualityList = player.qualityLevels();
-    const levels = qualityList.levels_ || [];
-    const levelItems = this.getLevelItems(levels);
+    const levelItems = this.getLevelItems();
 
     levelItems.sort((current, next) => {
       if ((typeof current !== 'object') || (typeof next !== 'object')) {
@@ -221,24 +217,20 @@ class HlsQualitySelectorPlugin {
 
   /**
    *
-   * @param quality - A number r
+   * @param quality - A number representing a quality bitrate, a width or a height.
    */
-  enableQuality(quality) {
+  markLevelAsEnabledByQuality(quality) {
     const levels = this.player.qualityLevels();
 
     for (let index = 0; index < levels.length; index += 1) {
       let enabled;
       const { bitrate, width, height } = levels[index];
 
-      console.log('ENABLE QUALITY: ', { bitrate, width, height, level: levels[index] });
-
       if (typeof bitrate === 'number' && (!width || !height)) {
         enabled = quality === bitrate;
-        console.log({ quality, bitrate, enabled });
       } else {
         const pixels = width > height ? height : width;
         enabled = pixels === quality;
-        console.log({ quality, pixels, enabled });
       }
 
       levels[index].enabled = enabled;
@@ -259,7 +251,7 @@ class HlsQualitySelectorPlugin {
       this.setButtonInnerText(label);
     }
 
-    this.enableQuality(quality);
+    this.markLevelAsEnabledByQuality(quality);
     this._qualityButton.unpressButton();
   }
 
